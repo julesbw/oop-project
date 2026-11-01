@@ -5,8 +5,8 @@ programme: artists, venues and shows, with the scheduling rules a generic CMS
 cannot enforce. The website and the admin are already written. Everything
 behind them is yours to build, in Python.
 
-> Replace this README with your own once the project works (see
-> [Submission](#submission)).
+> The original brief is retained below as the project specification. The
+> implementation and run instructions are documented in [Implementation](#implementation).
 
 ## What you get
 
@@ -16,7 +16,7 @@ behind them is yours to build, in Python.
 | [web/public/](web/public/)               | the public website: programme, artists, "now on stage"         |
 | [web/admin/](web/admin/)                 | the admin: schedule, move and cancel performances, add artists |
 | [API.md](API.md)                         | the HTTP contract the website and the admin rely on            |
-| [main.py](main.py)                       | a few lines that read the data file: where you start           |
+| [main.py](main.py)                       | compatibility entry point for the packaged CLI                 |
 
 That is all: no package, no class, no test. The structure of the project is
 part of the work. The two HTML folders are static files; they only talk to
@@ -113,16 +113,13 @@ You will defend these choices at the oral, on your own code.
 
 ## Start
 
-Follow the project track, from its step 00:
+The project has completed the B1-B5 track. From a fresh clone, install the
+environment and run the compatibility entry point:
 
 ```bash
-uv init --no-package
+uv sync
 uv run main.py
 ```
-
-The track builds the project step by step, from reading this file to the
-whole API: each step says what must work at its end, never which functions
-or classes to write.
 
 ## Levels
 
@@ -145,3 +142,52 @@ and says:
 - what is done, and what is not.
 
 A fresh clone must work with `uv sync`, then the commands of your README.
+
+## Implementation
+
+This repository follows the B1-B5 project track and now contains the complete
+CLI, domain model, JSON storage, FastAPI application and test suite.
+
+### Install and run
+
+~~~bash
+uv sync
+uv run main.py
+uv run deauville programme 2027-06-11
+uv run deauville artist max-pellerin
+uv run deauville now 2027-06-11T21:00
+uv run deauville serve
+~~~
+
+The website is available at "http://127.0.0.1:8000/", the admin at
+"http://127.0.0.1:8000/admin/", and the API documentation at
+"http://127.0.0.1:8000/docs".
+
+Run the checks with:
+
+~~~bash
+uv run pytest
+uv run ruff check src tests main.py
+uv build
+~~~
+
+### Structure
+
+- "src/deauville/models.py" contains "Venue", "Artist", the abstract
+  "Performance", and "SoloShow", "Lineup" and "Workshop".
+- "src/deauville/festival.py" is the aggregate root. All scheduling,
+  artist, date, lineup and workshop rules go through it.
+- "src/deauville/storage.py" separates JSON persistence from the domain and
+  provides an in-memory storage for tests.
+- "src/deauville/cli.py" implements the B1/B2 commands and "serve".
+- "src/deauville/api.py" implements the contract in "API.md", maps domain
+  errors to HTTP statuses, and mounts both websites.
+- "tests/" verifies the domain rules, date boundary, persistence behaviour
+  and HTTP contract.
+
+The model does not know where the data is stored. Replacing JSON with another
+storage would only require another "Storage" implementation and wiring it into
+the CLI or application factory.
+
+The 06:00 festival-day rule is implemented with real datetime values:
+"2027-06-12T01:00" belongs to the "2027-06-11" programme.
